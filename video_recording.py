@@ -11,6 +11,7 @@ DIM = (720, 480)
 K = np.array([[353.7, 0.0, 371.9], [0.0, 385.3, 291.5], [0.0, 0.0, 1.0]])
 D = np.array([[-0.03728], [0.03595], [-0.09144], [0.07880]])
 
+
 while True:
 	start = time.time()
 
@@ -32,8 +33,6 @@ while True:
 	fps = str(round((1/(end-start)),1)) + ' fps'
 
 	# Display the frame
-	cv2.imshow('frame', frame)
-
 	cv2.putText(frame_undistorted, fps, (5, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.4, [255, 255, 255], 1)
 	cv2.imshow('frame_undistorted', frame_undistorted)
 
