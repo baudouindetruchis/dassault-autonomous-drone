@@ -55,16 +55,20 @@ def random_transform(model, background, label_id):
     return background, label
 
 def random_generate(path_folder):
+    # Pick a model name & background name
     models_list = os.listdir(path_folder + 'models/')
     backgrounds_list = os.listdir(path_folder + 'backgrounds/')
     model_name = random.choice(models_list)
     background_name = random.choice(backgrounds_list)
 
+    # Import
     model = Image.open(path_folder + 'models/' + model_name)
     background = Image.open(path_folder + 'backgrounds/' + background_name)
 
+    # Get label_id from model name
     label_id = model_name.split('_')[0]
 
+    # Random transform + label
     background, label = random_transform(model, background, label_id)
 
     return background, label
@@ -75,6 +79,7 @@ def random_generate(path_folder):
 path_folder = 'D:/code#/[large_data]/dassault/'
 
 for i in range(100):
+    # Get one generated image + label
     generated, label = random_generate(path_folder)
 
     # Save generated image
