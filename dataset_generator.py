@@ -5,30 +5,39 @@ import cv2
 
 # ========== INFORMATION ==========
 # input model size = 200x200px
+# background size = 720x480px
 # =================================
 
 def random_image(model, background):
     # Random rotation
     model = model.rotate(randint(0,359), expand=True)
+    model = model.crop(model.getbbox())
 
     # Random scaling
     model_width, model_height = model.size
     scale = randint(10,100)/100
     model.thumbnail((model_width*scale, model_height*scale), Image.ANTIALIAS)
 
-    # Random brithness
+    # Random overall brithness
     enhancer = ImageEnhance.Brightness(model)
+    model = enhancer.enhance(randint(50,100)/100)
+
+    # Random overall saturation
+    enhancer = ImageEnhance.Color(model)
     model = enhancer.enhance(randint(50,100)/100)
 
     # Random gaussian_noise
     alpha = model.split()[-1]
     model = model.convert('RGB')
     model_array = cv2.cvtColor(np.array(model), cv2.COLOR_RGB2BGR)              # Convert to array and swap RGB --> BGR
-    print(model_array.max())
     noise = np.random.normal(loc=0, scale=1, size=model_array.shape)
-    model_array = np.clip((model_array + noise).astype('uint8'),0,255)
+    factor = randint(10,70)
+    model_array = np.clip((model_array + noise*factor),0,255).astype('uint8')
     model = Image.fromarray(cv2.cvtColor(model_array, cv2.COLOR_BGR2RGB))       # Swap BGR --> RGB and convert to pillow
     model.putalpha(alpha)
+
+    # Blur
+    model = model.filter(ImageFilter.GaussianBlur(radius = 1))
 
     # Random paste : model --> background
     model_width, model_height = model.size
