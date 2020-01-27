@@ -1,5 +1,8 @@
 import numpy as np
-from random import randint
+import random
+import os
+from datetime import datetime
+import time
 from PIL import Image, ImageEnhance, ImageFilter
 import cv2
 
@@ -8,30 +11,30 @@ import cv2
 # background size = 720x480px
 # =================================
 
-def random_image(model, background):
+def random_transform(model, background, label_id):
     # Random rotation
-    model = model.rotate(randint(0,359), expand=True)
+    model = model.rotate(random.randint(0,359), expand=True)
     model = model.crop(model.getbbox())
 
     # Random scaling
     model_width, model_height = model.size
-    scale = randint(10,100)/100
+    scale = random.randint(10,100)/100
     model.thumbnail((model_width*scale, model_height*scale), Image.ANTIALIAS)
 
-    # Random overall brithness
+    # Random brithness
     enhancer = ImageEnhance.Brightness(model)
-    model = enhancer.enhance(randint(50,100)/100)
+    model = enhancer.enhance(random.randint(50,100)/100)
 
-    # Random overall saturation
+    # Random saturation
     enhancer = ImageEnhance.Color(model)
-    model = enhancer.enhance(randint(50,100)/100)
+    model = enhancer.enhance(random.randint(50,100)/100)
 
     # Random gaussian_noise
     alpha = model.split()[-1]
     model = model.convert('RGB')
     model_array = cv2.cvtColor(np.array(model), cv2.COLOR_RGB2BGR)              # Convert to array and swap RGB --> BGR
     noise = np.random.normal(loc=0, scale=1, size=model_array.shape)
-    factor = randint(10,70)
+    factor = random.randint(10,70)
     model_array = np.clip((model_array + noise*factor),0,255).astype('uint8')
     model = Image.fromarray(cv2.cvtColor(model_array, cv2.COLOR_BGR2RGB))       # Swap BGR --> RGB and convert to pillow
     model.putalpha(alpha)
@@ -42,26 +45,40 @@ def random_image(model, background):
     # Random paste : model --> background
     model_width, model_height = model.size
     background_width, background_height = background.size
-    background.paste(model, (randint(0,background_width-model_width),randint(0,background_height-model_height)), model)
+    random_x = random.randint(0,background_width-model_width)
+    random_y = random.randint(0,background_height-model_height)
+    background.paste(model, (random_x, random_y), model)
 
-    return background
+    # Save bounding box [Label_ID, X_CENTER, Y_CENTER, WIDTH, HEIGHT]
+    label = [label_id, random_x, random_y, random_x+model_width, random_y+model_height]
+
+    return background, label
+
+def random_generate(path_folder):
+    models_list = os.listdir(path_folder + 'models/')
+    backgrounds_list = os.listdir(path_folder + 'backgrounds/')
+    model_name = random.choice(models_list)
+    background_name = random.choice(backgrounds_list)
+
+    model = Image.open(path_folder + 'models/' + model_name)
+    background = Image.open(path_folder + 'backgrounds/' + background_name)
+
+    label_id = model_name.split('_')[0]
+
+    background, label = random_transform(model, background, label_id)
+
+    return background, label
+
 
 # =================================
 
-path_data = 'D:/code#/[large_data]/dassault/'
+path_folder = 'D:/code#/[large_data]/dassault/'
 
-image_model = Image.open(path_data + 'models/redarrow_model1.png')
-image_background = Image.open(path_data + 'backgrounds_real/testflight_2019-12-14_14-36-13.jpg')
+for i in range(100):
+    generated, label = random_generate(path_folder)
 
-generated = random_image(image_model, image_background)
-generated = random_image(image_model, generated)
-generated = random_image(image_model, generated)
-generated = random_image(image_model, generated)
-generated = random_image(image_model, generated)
-generated = random_image(image_model, generated)
-generated = random_image(image_model, generated)
+    # Save generated image
+    timestamp = str(round(datetime.utcnow().timestamp()))
+    generated.save(path_folder + 'generated/' + str(label[0]) + '_' + timestamp + '.jpg')
 
-generated.show()
-
-# model_array = cv2.cvtColor(np.array(image_model), cv2.COLOR_RGB2BGR)
-# print(model_array.min())
+    time.sleep(1)
