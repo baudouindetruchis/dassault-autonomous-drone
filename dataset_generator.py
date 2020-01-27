@@ -6,10 +6,15 @@ import time
 from PIL import Image, ImageEnhance, ImageFilter
 import cv2
 
-# ========== INFORMATION ==========
+# ========== REQUIREMENTS ==========
 # input model size = 200x200px
 # background size = 720x480px
-# =================================
+#
+# update the variable : path_folder
+# models in folder : models/
+# backgrounds in folder : backgrounds/
+# outputs in folder : generated/
+# ==================================
 
 def random_transform(model, background, label_id):
     # Random rotation
@@ -50,7 +55,11 @@ def random_transform(model, background, label_id):
     background.paste(model, (random_x, random_y), model)
 
     # Save bounding box [Label_ID, X_CENTER, Y_CENTER, WIDTH, HEIGHT]
-    label = [label_id, random_x, random_y, random_x+model_width, random_y+model_height]
+    label = [label_id,
+            (random_x + 0.5*model_width)/background_width,
+            (random_y + 0.5*model_height)/background_height,
+            model_width/background_width,
+            model_height/background_height]
 
     return background, label
 
@@ -74,16 +83,15 @@ def random_generate(path_folder):
     return background, label
 
 
-# =================================
+# ========== RUN ==========
 
 path_folder = 'D:/code#/[large_data]/dassault/'
 
-for i in range(100):
+for i in range(2):
     # Get one generated image + label
     generated, label = random_generate(path_folder)
+    print(label)
 
     # Save generated image
-    timestamp = str(round(datetime.utcnow().timestamp()))
+    timestamp = str(round(datetime.utcnow().timestamp())) + '_' + str(round(datetime.utcnow().timestamp()*1000))[-3:]
     generated.save(path_folder + 'generated/' + str(label[0]) + '_' + timestamp + '.jpg')
-
-    time.sleep(1)
