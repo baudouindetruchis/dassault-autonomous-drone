@@ -87,7 +87,7 @@ def random_generate(path_folder):
 
 path_folder = 'D:/code#/[large_data]/dassault/'
 
-for i in range(2):
+for i in range(1000):
     # Get one generated image + label
     generated, label = random_generate(path_folder)
     print(label)
