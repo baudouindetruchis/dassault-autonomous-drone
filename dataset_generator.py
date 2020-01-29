@@ -38,7 +38,7 @@ def get_factor():
 
 
 def random_transform(model, background, label_id):
-    """Pipeline that add a model on top of a background after random transformations + return label"""
+    """Pipeline that adds a model on top of a background after random transformations + return label"""
     # Random 2D rotation
     model = model.rotate(random.randint(0,359), expand=True)
     model = model.crop(model.getbbox())
