@@ -3,6 +3,8 @@ import random
 import os
 from datetime import datetime
 import time
+import math
+from scipy.ndimage import interpolation
 from PIL import Image, ImageEnhance, ImageFilter
 import cv2
 
@@ -16,14 +18,46 @@ import cv2
 # outputs in folder : generated/
 # ==================================
 
+def find_coeffs(pa, pb):
+    """Get coefficients for perspective transformation"""
+    matrix = []
+    for p1, p2 in zip(pa, pb):
+        matrix.append([p1[0], p1[1], 1, 0, 0, 0, -p2[0]*p1[0], -p2[0]*p1[1]])
+        matrix.append([0, 0, 0, p1[0], p1[1], 1, -p2[1]*p1[0], -p2[1]*p1[1]])
+    A = np.matrix(matrix, dtype=np.float)
+    B = np.array(pb).reshape(8)
+    res = np.dot(np.linalg.inv(A.T * A) * A.T, B)
+
+    return np.array(res).reshape(8)
+
+def get_factor():
+    """Get a random factor for image perspective transformation"""
+    factor = random.randint(0,20)/100                                           # percentage of deformation
+
+    return factor
+
+
 def random_transform(model, background, label_id):
-    # Random rotation
+    """Add a model on top of a background after random transformations + return label"""
+    # Random 2D rotation
     model = model.rotate(random.randint(0,359), expand=True)
     model = model.crop(model.getbbox())
 
+    # Random 3D transform
+    model_width, model_height = model.size
+    coeffs = find_coeffs([(0 + get_factor()*model_width, 0 + get_factor()*model_height),                            # new upper-left corner
+                          (model_width - get_factor()*model_width, 0 + get_factor()*model_height),                  # new upper-right corner
+                          (model_width - get_factor()*model_width, model_height - get_factor()*model_height),       # new bottom-right corner
+                          (0 + get_factor()*model_width, model_height - get_factor()*model_height)],                # new bottom-left corner
+                         [(0, 0), (model_width, 0), (model_width, model_height), (0, model_height)])                # previous image shape
+    model = model.transform((model_width, model_height), Image.PERSPECTIVE, coeffs)
+    # model = model.crop(model.getbbox())
+
+
+
     # Random scaling
     model_width, model_height = model.size
-    scale = random.randint(10,100)/100
+    scale = random.randint(20,100)/100
     model.thumbnail((model_width*scale, model_height*scale), Image.ANTIALIAS)
 
     # Random brithness
@@ -64,6 +98,7 @@ def random_transform(model, background, label_id):
     return background, label
 
 def random_generate(path_folder):
+    """Pick randomly one model, one background and create a synthetic training example"""
     # Pick a model name & background name
     models_list = os.listdir(path_folder + 'models/')
     backgrounds_list = os.listdir(path_folder + 'backgrounds/')
@@ -87,7 +122,7 @@ def random_generate(path_folder):
 
 path_folder = 'D:/code#/[large_data]/dassault/'
 
-for i in range(1000):
+for i in range(3):
     # Get one generated image + label
     generated, label = random_generate(path_folder)
     print(label)
