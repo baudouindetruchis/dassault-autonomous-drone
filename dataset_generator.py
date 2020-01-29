@@ -36,7 +36,6 @@ def get_factor():
 
     return factor
 
-
 def random_transform(model, background, label_id):
     """Pipeline that adds a model on top of a background after random transformations + return label"""
     # Random 2D rotation
@@ -120,7 +119,7 @@ def random_generate(path_folder):
 
 path_folder = 'D:/code#/[large_data]/dassault/'
 
-for i in range(3):
+for i in range(10):
     # Get one generated image + label
     generated, label = random_generate(path_folder)
     print(label)
