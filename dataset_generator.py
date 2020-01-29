@@ -38,7 +38,7 @@ def get_factor():
 
 
 def random_transform(model, background, label_id):
-    """Add a model on top of a background after random transformations + return label"""
+    """Pipeline that add a model on top of a background after random transformations + return label"""
     # Random 2D rotation
     model = model.rotate(random.randint(0,359), expand=True)
     model = model.crop(model.getbbox())
@@ -51,9 +51,7 @@ def random_transform(model, background, label_id):
                           (0 + get_factor()*model_width, model_height - get_factor()*model_height)],                # new bottom-left corner
                          [(0, 0), (model_width, 0), (model_width, model_height), (0, model_height)])                # previous image shape
     model = model.transform((model_width, model_height), Image.PERSPECTIVE, coeffs)
-    # model = model.crop(model.getbbox())
-
-
+    model = model.crop(model.getbbox())
 
     # Random scaling
     model_width, model_height = model.size
@@ -86,7 +84,7 @@ def random_transform(model, background, label_id):
     background_width, background_height = background.size
     random_x = random.randint(0,background_width-model_width)
     random_y = random.randint(0,background_height-model_height)
-    background.paste(model, (random_x, random_y), model)
+    background.paste(model, (random_x, random_y))
 
     # Save bounding box [Label_ID, X_CENTER, Y_CENTER, WIDTH, HEIGHT]
     label = [label_id,
