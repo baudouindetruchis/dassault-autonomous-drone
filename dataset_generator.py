@@ -9,7 +9,7 @@ from PIL import Image, ImageEnhance, ImageFilter
 import cv2
 
 # ========== REQUIREMENTS ==========
-# input model size = 200x200px
+# input model size = ~300x300px
 # background size = 720x480px
 #
 # update the variable : path_folder
@@ -32,7 +32,7 @@ def find_coeffs(pa, pb):
 
 def get_factor():
     """Get a random factor for image perspective transformation"""
-    factor = random.randint(0,20)/100                                           # percentage of deformation
+    factor = random.randint(0,10)/100                                           # percentage of deformation
 
     return factor
 
@@ -98,13 +98,13 @@ def random_generate(path_folder):
     """Pick randomly one model, one background and create a synthetic training example"""
     # Pick a model name & background name
     models_list = os.listdir(path_folder + 'models/')
-    backgrounds_list = os.listdir(path_folder + 'backgrounds/')
+    backgrounds_list = os.listdir(path_folder + 'backgrounds_fake/')
     model_name = random.choice(models_list)
     background_name = random.choice(backgrounds_list)
 
     # Import
     model = Image.open(path_folder + 'models/' + model_name)
-    background = Image.open(path_folder + 'backgrounds/' + background_name)
+    background = Image.open(path_folder + 'backgrounds_fake/' + background_name)
 
     # Get label_id from model name
     label_id = model_name.split('_')[0]
@@ -119,7 +119,7 @@ def random_generate(path_folder):
 
 path_folder = 'D:/code#/[large_data]/dassault/'
 
-for i in range(10):
+for i in range(100):
     # Get one generated image + label
     generated, label = random_generate(path_folder)
     print(label)
