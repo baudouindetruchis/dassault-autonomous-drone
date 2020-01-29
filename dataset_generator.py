@@ -83,7 +83,7 @@ def random_transform(model, background, label_id):
     background_width, background_height = background.size
     random_x = random.randint(0,background_width-model_width)
     random_y = random.randint(0,background_height-model_height)
-    background.paste(model, (random_x, random_y))
+    background.paste(model, (random_x, random_y), model)                        # add model's alpha as a mask
 
     # Save bounding box [Label_ID, X_CENTER, Y_CENTER, WIDTH, HEIGHT]
     label = [label_id,
