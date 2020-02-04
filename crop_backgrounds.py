@@ -38,10 +38,10 @@ for background_name in backgrounds_list:
         # Save generated background
         regular = background_transform(generated)
         timestamp = str(round(datetime.utcnow().timestamp())) + '_' + str(round(datetime.utcnow().timestamp()*1000))[-3:]
-        regular.save(path_folder + 'backgrounds_fake/' + 'fake_' + timestamp + '.jpg')
+        regular.save(path_folder + 'backgrounds_internet/' + 'internet_' + timestamp + '.jpg')
 
         # Save mirror transform LEFT_RIGHT
         flipped = generated.transpose(Image.FLIP_LEFT_RIGHT)
         flipped = background_transform(flipped)
         timestamp = str(round(datetime.utcnow().timestamp())) + '_' + str(round(datetime.utcnow().timestamp()*1000))[-3:]
-        flipped.save(path_folder + 'backgrounds_fake/' + 'fake_' + timestamp + '.jpg')
+        flipped.save(path_folder + 'backgrounds_internet/' + 'internet_' + timestamp + '.jpg')

@@ -36,7 +36,7 @@ def get_factor():
 
     return factor
 
-def random_transform(model, background, label_id):
+def random_transform(model, background, label_id, max_scale=100):
     """Pipeline that adds a model on top of a background after random transformations + return label"""
     # Random 2D rotation
     model = model.rotate(random.randint(0,359), expand=True)
@@ -54,7 +54,7 @@ def random_transform(model, background, label_id):
 
     # Random scaling
     model_width, model_height = model.size
-    scale = random.randint(20,100)/100
+    scale = random.randint(20,max_scale)/100
     model.thumbnail((model_width*scale, model_height*scale), Image.ANTIALIAS)
 
     # Random brithness
@@ -95,21 +95,27 @@ def random_transform(model, background, label_id):
     return background, label
 
 def random_generate(path_folder):
-    """Pick randomly one model, one background and create a synthetic training example"""
-    # Pick a model name & background name
+    """Create a synthetic training example"""
+    # Pick model & background names
     models_list = os.listdir(path_folder + 'models/')
-    backgrounds_list = os.listdir(path_folder + 'backgrounds_fake/')
+    models_fake_list = os.listdir(path_folder + 'models_fake/')
+    backgrounds_list = os.listdir(path_folder + 'backgrounds_internet/')
+
     model_name = random.choice(models_list)
+    model_fake_names = random.choices(models_fake_list, k=random.randint(1,5))
     background_name = random.choice(backgrounds_list)
 
-    # Import
+    # Load model & background
     model = Image.open(path_folder + 'models/' + model_name)
-    background = Image.open(path_folder + 'backgrounds_fake/' + background_name)
+    background = Image.open(path_folder + 'backgrounds_internet/' + background_name)
 
-    # Get label_id from model name
+    # Add fake models
+    for fake_name in model_fake_names:
+        fake = Image.open(path_folder + 'models_fake/' + fake_name)
+        background, _ = random_transform(fake, background, 'x', max_scale=70)
+
+    # Add model + get label
     label_id = model_name.split('_')[0]
-
-    # Random transform + label
     background, label = random_transform(model, background, label_id)
 
     return background, label
@@ -125,5 +131,13 @@ for i in range(100):
     print(label)
 
     # Save generated image
-    timestamp = str(round(datetime.utcnow().timestamp())) + '_' + str(round(datetime.utcnow().timestamp()*1000))[-3:]
-    generated.save(path_folder + 'generated/' + str(label[0]) + '_' + timestamp + '.jpg')
+    filename = str(label[0]) + '_' + str(round(datetime.utcnow().timestamp())) + '_' + str(round(datetime.utcnow().timestamp()*1000))[-3:]
+    generated.save(path_folder + 'generated/' + filename + '.jpg')
+
+    # Save corresponding label
+    with open(path_folder + 'generated_labels/' + filename + '.txt', 'w+') as file:
+        for count, chunk in enumerate(label):
+            if count == 4:
+                file.write(str(chunk))
+            else:
+                file.write(str(chunk) + ' ')
