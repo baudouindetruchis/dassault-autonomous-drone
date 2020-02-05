@@ -18,6 +18,11 @@ import cv2
 # outputs in folder : generated/
 # ==================================
 
+# ========== INFORMATION ===========
+# ~8 image/sec
+# higher altitude --> maybe crop before blob
+# ==================================
+
 def find_coeffs(pa, pb):
     """Get coefficients for perspective transformation"""
     matrix = []
@@ -102,7 +107,7 @@ def random_generate(path_folder):
     backgrounds_list = os.listdir(path_folder + 'backgrounds_internet/')
 
     model_name = random.choice(models_list)
-    model_fake_names = random.choices(models_fake_list, k=random.randint(1,5))
+    model_fake_names = random.choices(models_fake_list, k=random.randint(0,3))
     background_name = random.choice(backgrounds_list)
 
     # Load model & background
@@ -125,7 +130,7 @@ def random_generate(path_folder):
 
 path_folder = 'D:/code#/[large_data]/dassault/'
 
-for i in range(100):
+for i in range(300):
     # Get one generated image + label
     generated, label = random_generate(path_folder)
     print(label)
