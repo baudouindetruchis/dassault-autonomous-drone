@@ -107,7 +107,7 @@ def random_generate(path_folder):
     backgrounds_list = os.listdir(path_folder + 'backgrounds_internet/')
 
     model_name = random.choice(models_list)
-    model_fake_names = random.choices(models_fake_list, k=random.randint(0,3))
+    model_fake_names = random.choices(models_fake_list, k=random.randint(0,2))
     background_name = random.choice(backgrounds_list)
 
     # Load model & background
