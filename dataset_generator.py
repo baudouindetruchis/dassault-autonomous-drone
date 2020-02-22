@@ -35,12 +35,6 @@ def find_coeffs(pa, pb):
 
     return np.array(res).reshape(8)
 
-def get_factor():
-    """Get a random factor for image perspective transformation"""
-    factor = random.randint(0,10)/100                                           # percentage of deformation
-
-    return factor
-
 def random_transform(model, background, label_id, max_scale=100):
     """Pipeline that adds a model on top of a background after random transformations + return label"""
     # Random 2D rotation
@@ -49,17 +43,23 @@ def random_transform(model, background, label_id, max_scale=100):
 
     # Random 3D transform
     model_width, model_height = model.size
-    coeffs = find_coeffs([(0 + get_factor()*model_width, 0 + get_factor()*model_height),                            # new upper-left corner
-                          (model_width - get_factor()*model_width, 0 + get_factor()*model_height),                  # new upper-right corner
-                          (model_width - get_factor()*model_width, model_height - get_factor()*model_height),       # new bottom-right corner
-                          (0 + get_factor()*model_width, model_height - get_factor()*model_height)],                # new bottom-left corner
-                         [(0, 0), (model_width, 0), (model_width, model_height), (0, model_height)])                # previous image shape
+    width_factor = random.randint(0,20)/100
+    height_factor = random.randint(0,20)/100
+    coeffs = find_coeffs([(0 + width_factor*model_width, 0 + height_factor*model_height),                                            # new upper-left corner
+                          (model_width - width_factor*model_width, 0 + height_factor*model_height),                                  # new upper-right corner
+                          (model_width, model_height),                                                      # new bottom-right corner
+                          (0, model_height)],                                                               # new bottom-left corner
+                         [(0, 0), (model_width, 0), (model_width, model_height), (0, model_height)])        # previous image shape
     model = model.transform((model_width, model_height), Image.PERSPECTIVE, coeffs)
+    model = model.crop(model.getbbox())
+
+    # Second 2D rotation
+    model = model.rotate(random.randint(0,359), expand=True)
     model = model.crop(model.getbbox())
 
     # Random scaling
     model_width, model_height = model.size
-    scale = random.randint(20,max_scale)/100
+    scale = random.randint(15,max_scale)/100
     model.thumbnail((model_width*scale, model_height*scale), Image.ANTIALIAS)
 
     # Random brithness
@@ -75,13 +75,13 @@ def random_transform(model, background, label_id, max_scale=100):
     model = model.convert('RGB')
     model_array = cv2.cvtColor(np.array(model), cv2.COLOR_RGB2BGR)              # Convert to array and swap RGB --> BGR
     noise = np.random.normal(loc=0, scale=1, size=model_array.shape)
-    factor = random.randint(10,70)
+    factor = random.randint(50,150)
     model_array = np.clip((model_array + noise*factor),0,255).astype('uint8')
     model = Image.fromarray(cv2.cvtColor(model_array, cv2.COLOR_BGR2RGB))       # Swap BGR --> RGB and convert to pillow
     model.putalpha(alpha)
 
     # Blur
-    model = model.filter(ImageFilter.GaussianBlur(radius = 1))
+    model = model.filter(ImageFilter.GaussianBlur(radius = random.randint(1,2)))
 
     # Random paste : model --> background
     model_width, model_height = model.size
@@ -129,18 +129,19 @@ def random_generate(path_folder):
 # ========== RUN ==========
 
 path_folder = 'D:/code#/[large_data]/dassault/'
+# path_folder = '/media/bdn/Data/code#/[large_data]/dassault/'
 
-for i in range(300):
+for i in range(20):
     # Get one generated image + label
     generated, label = random_generate(path_folder)
     print(label)
 
     # Save generated image
     filename = str(label[0]) + '_' + str(round(datetime.utcnow().timestamp())) + '_' + str(round(datetime.utcnow().timestamp()*1000))[-3:]
-    generated.save(path_folder + 'generated/' + filename + '.jpg')
+    generated.save(path_folder + 'generated_test/' + filename + '.jpg')
 
     # Save corresponding label
-    with open(path_folder + 'generated_labels/' + filename + '.txt', 'w+') as file:
+    with open(path_folder + 'generated_labels_test/' + filename + '.txt', 'w+') as file:
         for count, chunk in enumerate(label):
             if count == 4:
                 file.write(str(chunk))
