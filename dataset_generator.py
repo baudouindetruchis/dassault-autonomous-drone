@@ -45,8 +45,8 @@ def random_transform(model, background, label_id, max_scale=100):
     model_width, model_height = model.size
     width_factor = random.randint(0,20)/100
     height_factor = random.randint(0,20)/100
-    coeffs = find_coeffs([(0 + width_factor*model_width, 0 + height_factor*model_height),                                            # new upper-left corner
-                          (model_width - width_factor*model_width, 0 + height_factor*model_height),                                  # new upper-right corner
+    coeffs = find_coeffs([(0 + width_factor*model_width, 0 + height_factor*model_height),                   # new upper-left corner
+                          (model_width - width_factor*model_width, 0 + height_factor*model_height),         # new upper-right corner
                           (model_width, model_height),                                                      # new bottom-right corner
                           (0, model_height)],                                                               # new bottom-left corner
                          [(0, 0), (model_width, 0), (model_width, model_height), (0, model_height)])        # previous image shape
@@ -75,7 +75,7 @@ def random_transform(model, background, label_id, max_scale=100):
     model = model.convert('RGB')
     model_array = cv2.cvtColor(np.array(model), cv2.COLOR_RGB2BGR)              # Convert to array and swap RGB --> BGR
     noise = np.random.normal(loc=0, scale=1, size=model_array.shape)
-    factor = random.randint(50,150)
+    factor = random.randint(50,150)                                             # Noise intensity
     model_array = np.clip((model_array + noise*factor),0,255).astype('uint8')
     model = Image.fromarray(cv2.cvtColor(model_array, cv2.COLOR_BGR2RGB))       # Swap BGR --> RGB and convert to pillow
     model.putalpha(alpha)
@@ -88,7 +88,7 @@ def random_transform(model, background, label_id, max_scale=100):
     background_width, background_height = background.size
     random_x = random.randint(0,background_width-model_width)
     random_y = random.randint(0,background_height-model_height)
-    background.paste(model, (random_x, random_y), model)                        # add model's alpha as a mask
+    background.paste(model, (random_x, random_y), model)                        # Add model's alpha as a mask
 
     # Save bounding box [Label_ID, X_CENTER, Y_CENTER, WIDTH, HEIGHT]
     label = [label_id,
@@ -131,7 +131,7 @@ def random_generate(path_folder):
 path_folder = 'D:/code#/[large_data]/dassault/'
 # path_folder = '/media/bdn/Data/code#/[large_data]/dassault/'
 
-for i in range(20):
+for i in range(30):
     # Get one generated image + label
     generated, label = random_generate(path_folder)
     print(label)
