@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import os
+import glob
 from datetime import datetime
 import time
 import math
@@ -125,8 +126,7 @@ def background_generate(path_folder, size):
     backgrounds_list = os.listdir(path_folder + 'backgrounds/')
     backgrounds_list = [i for i in backgrounds_list if 'backgen_' not in i]
 
-    print('Generating backgrounds...')
-    for i in tqdm(range(size)):
+    for i in tqdm(range(size), desc='Generating backgrounds'):
         # Randomly choose a source background
         background_name = random.choice(backgrounds_list)
         background = Image.open(path_folder + 'backgrounds/' + background_name)
@@ -187,8 +187,7 @@ size = int(sys.argv[1])
 background_generate(path_folder, size//5)
 
 # Generate synthetic images
-print('Generating synthetic images...')
-for i in tqdm(range(size)):
+for i in tqdm(range(size), desc='Generating synthetic images'):
     # Get one generated image + label
     generated, label = random_generate(path_folder)
 
@@ -207,8 +206,18 @@ for i in tqdm(range(size)):
 # Remove generated backgrounds
 backgrounds_list = os.listdir(path_folder + 'backgrounds/')
 backgrounds_list = [i for i in backgrounds_list if 'backgen_' in i]
-print('Removing generated backgrounds...')
-for i in tqdm(backgrounds_list):
+for i in tqdm(backgrounds_list, desc='Removing generated backgrounds'):
     os.remove(path_folder + 'backgrounds/' + i)
 
 # Train test split file
+percentage_test = 10
+index_test = round(100/percentage_test)
+
+file_train = open(path_folder + 'train.txt', 'w')
+file_test = open(path_folder + 'test.txt', 'w')
+
+for count, item in enumerate(os.listdir(path_folder + 'generated/')):
+    if count % index_test == 0:
+        file_test.write('data/images/' + item + "\n")
+    else:
+        file_train.write('data/images/' + item + "\n")
