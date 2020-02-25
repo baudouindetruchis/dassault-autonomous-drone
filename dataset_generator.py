@@ -206,7 +206,7 @@ for i in tqdm(range(size), desc='Generating synthetic images'):
 # Remove generated backgrounds
 backgrounds_list = os.listdir(path_folder + 'backgrounds/')
 backgrounds_list = [i for i in backgrounds_list if 'backgen_' in i]
-for i in tqdm(backgrounds_list, desc='Removing generated backgrounds'):
+for i in backgrounds_list:
     os.remove(path_folder + 'backgrounds/' + i)
 
 # Train test split file
