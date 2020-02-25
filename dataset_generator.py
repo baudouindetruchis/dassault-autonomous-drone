@@ -74,7 +74,7 @@ def random_transform(model, background, label_id, max_scale=100):
     model = enhancer.enhance(random.randint(50,100)/100)
 
     # Blur
-    model = model.filter(ImageFilter.GaussianBlur(radius = 2))                  # Leave extra room for noise generation
+    model = model.filter(ImageFilter.GaussianBlur(radius=random.randint(0,2)))  # Leave extra room for noise generation
 
     # Random gaussian_noise
     alpha = model.split()[-1]
@@ -87,19 +87,16 @@ def random_transform(model, background, label_id, max_scale=100):
     model.putalpha(alpha)
 
     # Random blur
-    model = model.filter(ImageFilter.GaussianBlur(radius = random.randint(1,2)))
+    model = model.filter(ImageFilter.GaussianBlur(radius=random.randint(1,2)))
 
     # Rolling effect
-    alpha = model.split()[-1]
-    model = model.convert('RGB')
-    model_array = cv2.cvtColor(np.array(model), cv2.COLOR_RGB2BGR)
+    model_array = np.array(model)
     amplitude = random.randint(0,5)
     period = random.randint(5,40)/100
     shift = lambda x: amplitude * np.sin(2.0*np.pi*x*period)
     for i in range(model_array.shape[1]):
         model_array[:,i] = np.roll(model_array[:,i], int(shift(i)), axis=0)     # axis=0 so the matrix is not flattened
-    model = Image.fromarray(cv2.cvtColor(model_array, cv2.COLOR_BGR2RGB))
-    model.putalpha(alpha)
+    model = Image.fromarray(model_array)
 
     # Random paste : model --> background
     model_width, model_height = model.size
