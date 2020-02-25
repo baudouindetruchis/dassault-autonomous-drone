@@ -22,7 +22,7 @@ import cv2
 # ==================================
 
 # ========== INFORMATION ===========
-# ~8 image/sec
+# ~10 images/sec
 # higher altitude --> maybe crop before blob
 # ==================================
 
@@ -73,6 +73,9 @@ def random_transform(model, background, label_id, max_scale=100):
     enhancer = ImageEnhance.Color(model)
     model = enhancer.enhance(random.randint(50,100)/100)
 
+    # Blur
+    model = model.filter(ImageFilter.GaussianBlur(radius = 2))                  # Leave extra room for noise generation
+
     # Random gaussian_noise
     alpha = model.split()[-1]
     model = model.convert('RGB')
@@ -83,8 +86,20 @@ def random_transform(model, background, label_id, max_scale=100):
     model = Image.fromarray(cv2.cvtColor(model_array, cv2.COLOR_BGR2RGB))       # Swap BGR --> RGB and convert to pillow
     model.putalpha(alpha)
 
-    # Blur
-    model = model.filter(ImageFilter.GaussianBlur(radius = random.randint(1,4)))
+    # Random blur
+    model = model.filter(ImageFilter.GaussianBlur(radius = random.randint(1,2)))
+
+    # Rolling effect
+    alpha = model.split()[-1]
+    model = model.convert('RGB')
+    model_array = cv2.cvtColor(np.array(model), cv2.COLOR_RGB2BGR)
+    amplitude = random.randint(0,5)
+    period = random.randint(5,40)/100
+    shift = lambda x: amplitude * np.sin(2.0*np.pi*x*period)
+    for i in range(model_array.shape[1]):
+        model_array[:,i] = np.roll(model_array[:,i], int(shift(i)), axis=0)     # axis=0 so the matrix is not flattened
+    model = Image.fromarray(cv2.cvtColor(model_array, cv2.COLOR_BGR2RGB))
+    model.putalpha(alpha)
 
     # Random paste : model --> background
     model_width, model_height = model.size
@@ -108,7 +123,7 @@ def background_generate(path_folder, size):
     backgrounds_list = os.listdir(path_folder + 'backgrounds/')
     backgrounds_list = [i for i in backgrounds_list if 'backgen_' not in i]
 
-    print('[Generating backgrounds]')
+    print('Generating backgrounds...')
     for i in tqdm(range(size)):
         # Randomly choose a source background
         background_name = random.choice(backgrounds_list)
@@ -170,10 +185,10 @@ size = int(sys.argv[1])
 background_generate(path_folder, size//5)
 
 # Generate synthetic images
-for i in range(size):
+print('Generating synthetic images...')
+for i in tqdm(range(size)):
     # Get one generated image + label
     generated, label = random_generate(path_folder)
-    print(label)
 
     # Save generated image
     filename = str(label[0]) + '_' + str(round(datetime.utcnow().timestamp())) + '_' + str(round(datetime.utcnow().timestamp()*1000))[-3:]
@@ -190,6 +205,8 @@ for i in range(size):
 # Remove generated backgrounds
 backgrounds_list = os.listdir(path_folder + 'backgrounds/')
 backgrounds_list = [i for i in backgrounds_list if 'backgen_' in i]
-print('[Removing generated backgrounds]')
+print('Removing generated backgrounds...')
 for i in tqdm(backgrounds_list):
     os.remove(path_folder + 'backgrounds/' + i)
+
+# Train test split file
