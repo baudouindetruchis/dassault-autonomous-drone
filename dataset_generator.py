@@ -94,8 +94,13 @@ def random_transform(model, background, label_id, max_scale=100):
     amplitude = random.randint(0,5)
     period = random.randint(5,40)/100
     shift = lambda x: amplitude * np.sin(2.0*np.pi*x*period)
-    for i in range(model_array.shape[1]):
-        model_array[:,i] = np.roll(model_array[:,i], int(shift(i)), axis=0)     # axis=0 so the matrix is not flattened
+    orientation = random.randint(0,1)
+    if orientation == 1:
+        for i in range(model_array.shape[1]):
+            model_array[:,i] = np.roll(model_array[:,i], int(shift(i)), axis=0) # axis=0 so the matrix is not flattened
+    else:
+        for i in range(model_array.shape[0]):
+            model_array[i,:] = np.roll(model_array[i,:], int(shift(i)), axis=0)
     model = Image.fromarray(model_array)
 
     # Random paste : model --> background
