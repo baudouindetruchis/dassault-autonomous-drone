@@ -4,6 +4,8 @@ import os
 from datetime import datetime
 import time
 import math
+import sys
+from tqdm import tqdm
 from scipy.ndimage import interpolation
 from PIL import Image, ImageEnhance, ImageFilter
 import cv2
@@ -75,7 +77,7 @@ def random_transform(model, background, label_id, max_scale=100):
     model = model.convert('RGB')
     model_array = cv2.cvtColor(np.array(model), cv2.COLOR_RGB2BGR)              # Convert to array and swap RGB --> BGR
     noise = np.random.normal(loc=0, scale=1, size=model_array.shape)
-    factor = random.randint(50,150)                                             # Noise intensity
+    factor = random.randint(50,250)                                             # Noise intensity
     model_array = np.clip((model_array + noise*factor),0,255).astype('uint8')
     model = Image.fromarray(cv2.cvtColor(model_array, cv2.COLOR_BGR2RGB))       # Swap BGR --> RGB and convert to pillow
     model.putalpha(alpha)
@@ -99,12 +101,41 @@ def random_transform(model, background, label_id, max_scale=100):
 
     return background, label
 
+def background_generate(path_folder, size):
+    """Generate a large amount of backgrounds with correct size"""
+    # List source backgrounds
+    backgrounds_list = os.listdir(path_folder + 'backgrounds/')
+    backgrounds_list = [i for i in backgrounds_list if 'backgen_' not in i]
+
+    print('[Generating backgrounds]')
+    for i in tqdm(range(size)):
+        # Randomly choose a source background
+        background_name = random.choice(backgrounds_list)
+        background = Image.open(path_folder + 'backgrounds/' + background_name)
+
+        # Crop background
+        width, height = background.size
+        random_x = random.randint(0, width - 720)
+        random_y = random.randint(0, height - 480)
+        generated = background.crop((random_x, random_y, random_x+720, random_y+480))
+
+        # Random transform
+        enhancer = ImageEnhance.Brightness(generated)
+        generated = enhancer.enhance(random.randint(70,130)/100)
+        enhancer = ImageEnhance.Color(generated)
+        generated = enhancer.enhance(random.randint(70,100)/100)
+
+        # Save generated background
+        timestamp = str(round(datetime.utcnow().timestamp())) + '_' + str(round(datetime.utcnow().timestamp()*1000))[-3:]
+        generated.save(path_folder + 'backgrounds/' + 'backgen_' + timestamp + '.jpg')
+
 def random_generate(path_folder):
     """Create a synthetic training example"""
     # Pick model & background names
     models_list = os.listdir(path_folder + 'models/')
     models_fake_list = os.listdir(path_folder + 'models_fake/')
-    backgrounds_list = os.listdir(path_folder + 'backgrounds_internet/')
+    backgrounds_list = os.listdir(path_folder + 'backgrounds/')
+    backgrounds_list = [i for i in backgrounds_list if 'backgen_' in i]
 
     model_name = random.choice(models_list)
     model_fake_names = random.choices(models_fake_list, k=random.randint(0,2))
@@ -112,7 +143,7 @@ def random_generate(path_folder):
 
     # Load model & background
     model = Image.open(path_folder + 'models/' + model_name)
-    background = Image.open(path_folder + 'backgrounds_internet/' + background_name)
+    background = Image.open(path_folder + 'backgrounds/' + background_name)
 
     # Add fake models
     for fake_name in model_fake_names:
@@ -131,7 +162,14 @@ def random_generate(path_folder):
 path_folder = 'D:/code#/[large_data]/dassault/'
 # path_folder = '/media/bdn/Data/code#/[large_data]/dassault/'
 
-for i in range(30):
+# Get number of synthetic images needed
+size = int(sys.argv[1])
+
+# Generate random backgrounds
+background_generate(path_folder, size//5)
+
+# Generate synthetic images
+for i in range(size):
     # Get one generated image + label
     generated, label = random_generate(path_folder)
     print(label)
@@ -147,3 +185,10 @@ for i in range(30):
                 file.write(str(chunk))
             else:
                 file.write(str(chunk) + ' ')
+
+# Remove generated backgrounds
+backgrounds_list = os.listdir(path_folder + 'backgrounds/')
+backgrounds_list = [i for i in backgrounds_list if 'backgen_' in i]
+print('[Removing generated backgrounds]')
+for i in tqdm(backgrounds_list):
+    os.remove(path_folder + 'backgrounds/' + i)
