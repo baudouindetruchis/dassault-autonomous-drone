@@ -25,6 +25,8 @@ import cv2
 # ========== INFORMATION ===========
 # ~10 images/sec
 # higher altitude --> maybe crop before blob
+# generation : 100K images --> 2h30
+# compression .zip : darknet 100K --> 1h
 # ==================================
 
 def find_coeffs(pa, pb):
@@ -177,14 +179,16 @@ def random_generate(path_folder):
 
 # ========== RUN ==========
 
-path_folder = 'D:/code#/[large_data]/dassault/'
+# path_folder = 'D:/code#/[large_data]/dassault/'
+path_folder = 'E:/dassault/'
 # path_folder = '/media/bdn/Data/code#/[large_data]/dassault/'
+
 
 # Get number of synthetic images needed
 size = int(sys.argv[1])
 
 # Generate random backgrounds
-background_generate(path_folder, size//5)
+background_generate(path_folder, size//10)
 
 # Generate synthetic images
 for i in tqdm(range(size), desc='Generating synthetic images'):
