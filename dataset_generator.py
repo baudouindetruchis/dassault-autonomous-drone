@@ -27,6 +27,7 @@ import cv2
 # higher altitude --> maybe crop before blob
 # generation : 100K images --> 2h30
 # compression .zip : darknet 100K --> 1h
+# NDC 0.2Gb/s --> 20min
 # ==================================
 
 def find_coeffs(pa, pb):
