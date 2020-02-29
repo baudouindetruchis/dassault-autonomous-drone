@@ -1,73 +1,117 @@
 import time
 import cv2
 import numpy as np
-from datetime import datetime
-import imutils
 import os
 
+# ========== REQUIREMENTS ==========
+# input size = 720x480px
+#
+# communication folder : pipeline/
+# model files in folder : yolo_model/
+# ==================================
+
+# ========== INFORMATION ===========
+# 0.5 FPS on CPU locally
+#
+# dist_6k_v2 : 40/83 --> 48% true+ (5% false+)
+# dist_3k_v3 : 76/83 --> 91% true+ (0% false+)
+# dist_6k_v3 : 59/83 --> 71% true+ (1% false+)
+# ==================================
 
 # ========== FUNCTIONS ==========
 
 def process_outputs(outputs, frame_width, frame_height, conf_threshold, nms_threshold):
-	# Reset bounding boxes, confidences
+	"""Process dnn outputs --> output selected boxes in pixels with upper-left corner as reference"""
+	# Reset bounding boxes, class_ids & confidences
 	boxes = []
-	confidences = []
 	class_ids = []
+	confidences = []
 
 	for output in outputs:
 		for detection in output:
 			scores = detection[5:]
 			class_id = np.argmax(scores)
-			confidence = scores[class_id]
+			confidence = round(scores[class_id],2)
 
 			if confidence > conf_threshold:
 				# Scale bounding boxes back to frame
 				box = detection[0:4] * np.array([frame_width, frame_height, frame_width, frame_height])
-				(center_x, center_y, width, height) = box.astype("int")
+				(center_x, center_y, width, height) = box.astype(int)
 
-				# Upper-left corner
-				x = int(center_x - (width / 2))
-				y = int(center_y - (height / 2))
+				# Upper-left corner coordinates
+				x = int(center_x - (width // 2))
+				y = int(center_y - (height // 2))
 
 				boxes.append([x, y, int(width), int(height)])
-				confidences.append(float(confidence))
 				class_ids.append(class_id)
+				confidences.append(round(float(confidence),2))
 
 	# Apply non-maxima suppression
-	selected = cv2.dnn.NMSBoxes(boxes, confidences, conf_threshold, nms_threshold)
+	selected = cv2.dnn.NMSBoxes(boxes, confidences, conf_threshold, nms_threshold).flatten()
+	for i in reversed(range(len(boxes))):
+		if i not in selected:
+			del boxes[i]
+			del confidences[i]
+			del class_ids[i]
 
-	return boxes, confidences, class_ids, selected
+	return boxes, confidences, class_ids
 
-def draw_predictions(frame, boxes, confidences, class_ids, selected, labels, colors):
-	if len(selected) > 0:
-		for i in selected.flatten():
-			(x, y) = (boxes[i][0], boxes[i][1])
-			(w, h) = (boxes[i][2], boxes[i][3])
+def draw_predictions(frame, boxes, confidences, class_ids, labels, colors):
+	"""Take boxes in pixels with upper-left corner as reference --> draw bounding boxes on frame"""
+	for i in range(len(boxes)):
+		(x, y) = (boxes[i][0], boxes[i][1])
+		(w, h) = (boxes[i][2], boxes[i][3])
+		color = [int(c) for c in colors[class_ids[i]]]
 
-			color = [int(c) for c in colors[class_ids[i]]]
-			cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
-			text = "{}: {:.2f}".format(labels[class_ids[i]], confidences[i])
-			cv2.putText(frame, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
+		# Draw bounding box
+		cv2.rectangle(frame, (x, y), (x + w, y + h), color=color, thickness=1)
+
+		# Print label + confidence
+		text = str(labels[class_ids[i]]) + ' ' + str(confidences[i])
+		(text_width, text_height) = cv2.getTextSize(text, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.3, thickness=1)[0]
+		cv2.rectangle(frame, (x, y-text_height-1), (x+text_width, y), color=color, thickness=cv2.FILLED)
+		cv2.putText(frame, text, org=(x, y-1), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.3, color=(0,0,0), thickness=1)
 
 	return frame
 
+def pipeline(boxes, confidences, class_ids, labels, frame_height, frame_width, path_folder):
+	"""Push to pipeline detected shapes in .txt file"""
+	if len(boxes) > 0:
+		with open(path_folder + 'pipeline/detection.txt', 'w') as file:
+			file.write('detected\n')
+
+			for i in range(len(boxes)):
+				(x, y) = (boxes[i][0], boxes[i][1])
+				(w, h) = (boxes[i][2], boxes[i][3])
+
+				# Coordinates relative to frame center
+				relative_x = x - (frame_width//2) + (w//2)
+				relative_y = -y + (frame_height//2) - (h//2)
+
+				# Write detected label + relative to center coordinates
+				file.write(str(labels[class_ids[i]]) + ' ' + str(relative_x) + ' ' + str(relative_y) + '\n')
+	else:
+		with open(path_folder + 'pipeline/detection.txt', 'w') as file:
+			file.write('nothing\n')
 
 # ========== YOLO SETUP ==========
 
-label_path = '/media/bdn/Data/code#/[large_data]/dassault/MODEL/yolo.names'
-config_path = '/media/bdn/Data/code#/[large_data]/dassault/MODEL/yolov3_custom_train.cfg'
-weights_path = '/media/bdn/Data/code#/[large_data]/dassault/MODEL/yolov3_custom_train_6000_v2.weights'
-# video_input_path = '../[large_data]/airport.mp4'
-# writer_path = '../../../Desktop/yolo_adrien_video.avi'
+path_folder = 'D:/code#/[large_data]/dassault/'
+filename_weights = 'yolov3_custom_train_3000_v3.weights'
 
-# Import labels & color setup
-labels = open(label_path).read().strip().split("\n")
-np.random.seed(42)
-colors = np.random.randint(0, 255, size=(len(labels), 3), dtype="uint8")
+# Labels & color setup
+labels = open(path_folder + 'yolo_model/yolo.names').read().strip().split("\n")
+colors = np.array([[0, 20, 229],
+				   [135, 118, 100],
+				   [37, 0, 162],
+				   [115, 0, 216],
+				   [208, 114, 244],
+				   [239, 80, 0],
+				   [0, 200, 227]])
 
 # Load model
 print("[INFO] loading YOLO from disk...")
-net = cv2.dnn.readNetFromDarknet(config_path, weights_path)
+net = cv2.dnn.readNetFromDarknet(path_folder + 'yolo_model/yolov3_custom_train.cfg', path_folder + 'yolo_model/' + filename_weights)
 net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
 net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
 ln = net.getLayerNames()
@@ -76,7 +120,6 @@ ln = [ln[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 # Parameters setup
 conf_threshold = 0.25    # Confidence threshold
 nms_threshold = 0.5    # Non-maximum suppression threshold
-
 
 # ========== DISTORTION SETUP ==========
 
@@ -89,26 +132,14 @@ D = np.array([[-0.03728], [0.03595], [-0.09144], [0.07880]])
 
 # ========== RUNNING ==========
 
-# cap = cv2.VideoCapture(0)
-
-path = '/media/bdn/Data/code#/[large_data]/dassault/generated_1/'
-# path = '/media/bdn/Data/code#/[large_data]/dassault/red_arrow_real/'
-images_list = os.listdir(path)
-count = 0
-
 while True:
 	start = time.time()
 
-	frame = cv2.imread(path + images_list[count])
-	count = count + 1
-
-	# time.sleep(1)
-
-
-	# Capture frame-by-frame
-	# grabbed, frame = cap.read()
-	# if not grabbed:
-	# 	break
+	# Read raw image
+	frame = cv2.imread(path_folder + 'pipeline/capture_raw.jpg')
+	if frame is None:
+		time.sleep(0.1)
+		continue
 
 	# Get image shape
 	if (frame_height == None) or (frame_width == None):
@@ -116,35 +147,32 @@ while True:
 
 	# Undistort frame
 	map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), K, DIM, cv2.CV_16SC2)
-	frame_undistorted = cv2.remap(frame, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+	frame = cv2.remap(frame, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 
-	# Transform frame in 416x416 blob
+	# Transform frame in 416x416 blob + forward pass
 	blob = cv2.dnn.blobFromImage(frame, 1/255, (416, 416), swapRB=True, crop=False)
-
-	# Forward pass
 	net.setInput(blob)
 	outputs = net.forward(ln)
 
 	# Post-processing
-	boxes, confidences, class_ids, selected = process_outputs(outputs, frame_width, frame_height, conf_threshold, nms_threshold)
-	frame = draw_predictions(frame, boxes, confidences, class_ids, selected, labels, colors)
-
-	# Save the frame
-	# date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-	# cv2.imwrite('dataset/testflight_undist_' + date + '.jpg', frame_undistorted)
+	boxes, confidences, class_ids = process_outputs(outputs, frame_width, frame_height, conf_threshold, nms_threshold)
+	frame = draw_predictions(frame, boxes, confidences, class_ids, labels, colors)
 
 	# Compute fps rate
 	end = time.time()
 	fps = str(round((1/(end-start)),1)) + ' fps'
+	cv2.putText(frame, fps, (5, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.4, [255, 255, 255], 1)
 
 	# Display the frame
-	cv2.putText(frame, fps, (5, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.4, [255, 255, 255], 1)
 	cv2.imshow('frame_undistorted', frame)
+
+	# Communicate through pipeline
+	pipeline(boxes, confidences, class_ids, labels, frame_height, frame_width, path_folder)
+	cv2.imwrite(path_folder + 'pipeline/capture_processed.jpg', frame)
 
 	# Check key press
 	if cv2.waitKey(1) & 0xFF == ord('q'):
 		break
 
 # Release capture
-cap.release()
 cv2.destroyAllWindows()
