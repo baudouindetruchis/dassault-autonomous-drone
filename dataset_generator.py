@@ -13,7 +13,7 @@ import cv2
 
 # ========== REQUIREMENTS ==========
 # input model size = ~300x300px
-# background size = larger than 720x480px
+# background size = larger than 720x576px
 #
 # update the variable : path_folder
 # models in folder : models/
@@ -137,8 +137,8 @@ def background_generate(path_folder, size):
         # Crop background
         width, height = background.size
         random_x = random.randint(0, width - 720)
-        random_y = random.randint(0, height - 480)
-        generated = background.crop((random_x, random_y, random_x+720, random_y+480))
+        random_y = random.randint(0, height - 576)
+        generated = background.crop((random_x, random_y, random_x+720, random_y+576))
 
         # Random transform
         enhancer = ImageEnhance.Brightness(generated)
@@ -180,8 +180,8 @@ def random_generate(path_folder):
 
 # ========== RUN ==========
 
-# path_folder = 'D:/code#/[large_data]/dassault/'
-path_folder = 'E:/dassault/'
+path_folder = 'D:/code#/[large_data]/dassault/'
+# path_folder = 'E:/dassault/'
 # path_folder = '/media/bdn/Data/code#/[large_data]/dassault/'
 
 

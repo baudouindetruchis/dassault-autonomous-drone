@@ -2,12 +2,14 @@ import time
 import cv2
 import numpy as np
 import os
+import random
 
 # ========== REQUIREMENTS ==========
-# input size = 720x480px
+# input size = 720x576px
 #
 # communication folder : pipeline/
 # model files in folder : yolo_model/
+# predictions in folder : predictions/
 # ==================================
 
 # ========== INFORMATION ===========
@@ -47,7 +49,7 @@ def process_outputs(outputs, frame_width, frame_height, conf_threshold, nms_thre
 				confidences.append(round(float(confidence),2))
 
 	# Apply non-maxima suppression
-	selected = cv2.dnn.NMSBoxes(boxes, confidences, conf_threshold, nms_threshold).flatten()
+	selected = np.array(cv2.dnn.NMSBoxes(boxes, confidences, conf_threshold, nms_threshold)).flatten()		# NMSBoxes returns an empty tuple when no box
 	for i in reversed(range(len(boxes))):
 		if i not in selected:
 			del boxes[i]
@@ -118,8 +120,8 @@ ln = net.getLayerNames()
 ln = [ln[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
 # Parameters setup
-conf_threshold = 0.25    # Confidence threshold
-nms_threshold = 0.5    # Non-maximum suppression threshold
+conf_threshold = 0.25	# Confidence minimum threshold
+nms_threshold = 0.1		# Non-maximum suppression threshold : overlap maximum threshold
 
 # ========== DISTORTION SETUP ==========
 
@@ -136,9 +138,12 @@ while True:
 	start = time.time()
 
 	# Read raw image
-	frame = cv2.imread(path_folder + 'pipeline/capture_raw.jpg')
+	image_list = os.listdir('D:/code#/[large_data]/dassault/generated')
+	frame = cv2.imread(path_folder + 'generated/' + random.choice(image_list))
+	# frame = cv2.imread(path_folder + 'pipeline/capture_raw.jpg')
 	if frame is None:
 		time.sleep(0.1)
+		print('[WARNING] cannot load input image')
 		continue
 
 	# Get image shape
@@ -147,7 +152,7 @@ while True:
 
 	# Undistort frame
 	map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), K, DIM, cv2.CV_16SC2)
-	frame = cv2.remap(frame, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+	# frame = cv2.remap(frame, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 
 	# Transform frame in 416x416 blob + forward pass
 	blob = cv2.dnn.blobFromImage(frame, 1/255, (416, 416), swapRB=True, crop=False)
@@ -169,6 +174,10 @@ while True:
 	# Communicate through pipeline
 	pipeline(boxes, confidences, class_ids, labels, frame_height, frame_width, path_folder)
 	cv2.imwrite(path_folder + 'pipeline/capture_processed.jpg', frame)
+
+	# Save predictions
+	timestamp = str(int(time.time())) + '_' + str(int(time.time()*1000))[-3:]
+	cv2.imwrite(path_folder + 'predictions/prediction_' + timestamp + '.jpg', frame)
 
 	# Check key press
 	if cv2.waitKey(1) & 0xFF == ord('q'):
