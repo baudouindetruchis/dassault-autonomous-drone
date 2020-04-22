@@ -50,10 +50,9 @@ def random_transform(model, background, label_id, max_scale=100):
 
     # Random 3D transform
     model_width, model_height = model.size
-    width_factor = random.randint(0,20)/100
-    height_factor = random.randint(0,20)/100
-    coeffs = find_coeffs([(0 + width_factor*model_width, 0 + height_factor*model_height),                   # new upper-left corner
-                          (model_width - width_factor*model_width, 0 + height_factor*model_height),         # new upper-right corner
+    factor = random.randint(0,30)/100
+    coeffs = find_coeffs([(0 + factor*model_width, 0 + factor*model_height),                                # new upper-left corner
+                          (model_width - factor*model_width, 0 + factor*model_height),                      # new upper-right corner
                           (model_width, model_height),                                                      # new bottom-right corner
                           (0, model_height)],                                                               # new bottom-left corner
                          [(0, 0), (model_width, 0), (model_width, model_height), (0, model_height)])        # previous image shape
