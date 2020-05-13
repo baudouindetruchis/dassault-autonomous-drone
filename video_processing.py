@@ -138,8 +138,8 @@ while True:
 	start = time.time()
 
 	# Read raw image
-	image_list = os.listdir('D:/code#/[large_data]/dassault/generated')
-	frame = cv2.imread(path_folder + 'generated/' + random.choice(image_list))
+	image_list = os.listdir('D:/code#/[large_data]/dassault/real_dataset/dataset_redarrow_ISEP_first')
+	frame = cv2.imread(path_folder + 'real_dataset/dataset_redarrow_ISEP_first/' + random.choice(image_list))
 	# frame = cv2.imread(path_folder + 'pipeline/capture_raw.jpg')
 	if frame is None:
 		time.sleep(0.1)
